@@ -1,0 +1,18 @@
+curl.exe -X POST https://localhost:8080/retell-webhook \
+   -H "Content-Type: application/json" \
+   -d '{
+         "name": "submit_videoplus_order",
+         "args": {
+           "style_of_cause": "Smith vs. Jones",
+           "court_file_number": "CV-23-0001",
+           "ordering_party_email": "YOUR_ACTUAL_EMAIL@gmail.com", 
+           "ordering_party_name": "Test User",
+           "ordering_party_phone": "555-0199",
+           "due_date": "2023-12-01",
+           "delivery_format": "electronic"
+         }
+       }'
+
+
+
+       Invoke-RestMethod -Uri "http://localhost:8080/retell-webhook" -Method Post -ContentType "application/json" -Body '{"name": "submit_videoplus_order", "args": {"style_of_cause": "Test Case", "court_file_number": "123", "ordering_party_email": "soumik@steorasystems.com", "ordering_party_name": "Tester", "ordering_party_phone": "555-1234", "due_date": "ASAP", "delivery_format": "electronic"}}'

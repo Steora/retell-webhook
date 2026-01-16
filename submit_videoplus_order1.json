@@ -1,0 +1,115 @@
+{
+  "type": "object",
+  "properties": {
+    "style_of_cause": {
+      "type": "string",
+      "description": "Step 2: Case Name"
+    },
+    "expedited_service": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    "proceeding_dates": {
+      "type": "string",
+      "description": "Step 4: Dates"
+    },
+    "courtroom_number": {
+      "type": "string",
+      "description": "Step 5"
+    },
+    "email_completed_form": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    "court_type": {
+      "type": "string",
+      "enum": [
+        "Superior Court of Justice",
+        "Ontario Court of Justice"
+      ]
+    },
+    "due_date": {
+      "type": "string"
+    },
+    "is_appeal": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ]
+    },
+    "returning_customer": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ]
+    },
+    "ordering_party_relationship": {
+      "type": "string"
+    },
+    "content_description": {
+      "type": "string"
+    },
+    "ordering_party_name": {
+      "type": "string"
+    },
+    "court_location": {
+      "type": "string",
+      "description": "Step 3: City"
+    },
+    "content_type": {
+      "type": "string",
+      "description": "Step 7"
+    },
+    "is_legal_aid": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no",
+        "unknown"
+      ]
+    },
+    "delivery_format": {
+      "type": "string",
+      "enum": [
+        "electronic",
+        "hard_copy"
+      ]
+    },
+    "ordering_party_phone": {
+      "type": "string"
+    },
+    "court_file_number": {
+      "type": "string",
+      "description": "Step 2: File #"
+    },
+    "ordering_party_email": {
+      "type": "string"
+    },
+    "judge_name": {
+      "type": "string",
+      "description": "Step 5"
+    },
+    "quote_required": {
+      "type": "string",
+      "enum": [
+        "yes",
+        "no"
+      ]
+    }
+  },
+  "required": [
+    "style_of_cause",
+    "court_location",
+    "ordering_party_email",
+    "ordering_party_name"
+  ]
+}
