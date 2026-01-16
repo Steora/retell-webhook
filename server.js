@@ -1,28 +1,57 @@
-
-//v3
+// VideoPlus Webhook Server - v4 (AWS EC2 Optimized)
 import express from "express";
 import nodemailer from "nodemailer";
 import cors from 'cors';
+
+// Initialize Express app
 const app = express();
-// app.use(express.json());
-// const cors = require('cors');
+
+// Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true })); 
 
-// --- 1. EMAIL CONFIGURATION ---
-// Replace these with your actual email details
-const ADMIN_EMAIL = "soumik@steorasystems.com"; 
+// --- 1. CONFIGURATION ---
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "soumik@steorasystems.com";
+const PORT = process.env.PORT || 8080;
 
+// Email transporter configuration
 const transporter = nodemailer.createTransport({
-  service: "gmail", // Use 'gmail', 'outlook', or 'yahoo'
+  service: "gmail",
   auth: {
-    user: "soumik@steorasystems.com", 
-    pass: "pras txtc bbga jsgl", // YOUR 16-CHAR APP PASSWORD (Not regular password)
+    user: process.env.GMAIL_USER || "soumik@steorasystems.com",
+    pass: process.env.GMAIL_APP_PASSWORD || "pras txtc bbga jsgl",
   },
+  // Optimized settings for cloud hosting
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 10000,
+  port: 587,
+  secure: false,
+  tls: {
+    rejectUnauthorized: false
+  }
 });
 
-// --- 2. WEBHOOK ENDPOINT ---
+// --- 2. HEALTH CHECK ENDPOINT ---
+app.get("/", (req, res) => {
+  res.json({
+    status: "healthy",
+    service: "VideoPlus Webhook Server",
+    version: "4.0",
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// --- 3. WEBHOOK ENDPOINT ---
 app.post("/retell-webhook", async (req, res) => {
   try {
     const { name, args } = req.body;
@@ -92,13 +121,31 @@ app.post("/retell-webhook", async (req, res) => {
 
 // Generic Send Wrapper
 async function sendEmail({ to, subject, html }) {
-  const info = await transporter.sendMail({
-    from: '"Retell Voice Agent" <your-sending-email@gmail.com>',
-    to: to,
-    subject: subject,
-    html: html,
-  });
-  console.log(`>> Email sent to ${to}: ${info.messageId}`);
+  try {
+    // Verify SMTP connection before sending
+    await transporter.verify();
+    console.log('✅ SMTP connection verified');
+    
+    const info = await transporter.sendMail({
+      from: '"VideoPlus Court Transcription" <soumik@steorasystems.com>',
+      to: to,
+      subject: subject,
+      html: html,
+    });
+    console.log(`✅ Email sent to ${to}: ${info.messageId}`);
+    return info;
+  } catch (error) {
+    console.error(`❌ Failed to send email to ${to}:`, error.message);
+    console.error('Error code:', error.code);
+    
+    // Provide helpful error messages
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
+      console.error('⚠️ SMTP connection timeout - Your hosting provider may be blocking SMTP ports');
+      console.error('💡 Solution: Use SendGrid, Mailgun, or AWS SES instead of Gmail SMTP');
+    }
+    
+    throw error; // Re-throw to be caught by the route handler
+  }
 }
 
 // --- 4. HTML TEMPLATES (DESIGN YOUR EMAILS HERE) ---
@@ -242,5 +289,11 @@ function getAdminOrderTemplate(data) {
 }
 
 
-const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// --- 5. START SERVER ---
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`\n✅ VideoPlus Webhook Server`);
+  console.log(`📡 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📧 Admin email: ${ADMIN_EMAIL}`);
+  console.log(`⏰ Started at: ${new Date().toISOString()}\n`);
+});

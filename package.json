@@ -1,19 +1,33 @@
 {
-  "name": "retell-webhook",
-  "version": "1.0.0",
-  "description": "",
+  "name": "videoplus-webhook",
+  "version": "4.0.0",
+  "description": "Webhook server for VideoPlus Court Transcription AI voice agent",
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop videoplus-webhook",
+    "pm2:restart": "pm2 restart videoplus-webhook",
+    "pm2:logs": "pm2 logs videoplus-webhook"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "webhook",
+    "retell",
+    "elevenlabs",
+    "voice-ai",
+    "court-transcription"
+  ],
+  "author": "VideoPlus Court Transcription",
+  "license": "PRIVATE",
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^5.2.1",
-    "googleapis": "^169.0.0",
     "nodemailer": "^7.0.12"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   }
 }
