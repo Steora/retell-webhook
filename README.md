@@ -15,6 +15,15 @@ Webhook server for handling Retell/ElevenLabs AI voice agent function calls for 
 - Gmail account with App Password enabled
 - AWS EC2 instance (or any Linux server)
 
+## 📚 Documentation
+
+| Guide | Purpose | Time |
+|-------|---------|------|
+| [QUICKSTART.md](QUICKSTART.md) | Deploy to AWS EC2 | 5 min |
+| [FRONTEND_INTEGRATION.md](FRONTEND_INTEGRATION.md) | Connect frontend (no domain needed) | 10 min |
+| [QUICK_REFERENCE.md](QUICK_REFERENCE.md) | Quick commands & URLs | 2 min |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Detailed AWS guide | 20 min |
+
 ## Installation
 
 ```bash

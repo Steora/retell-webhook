@@ -6,8 +6,17 @@ import cors from 'cors';
 // Initialize Express app
 const app = express();
 
+// CORS Configuration - Handle preflight requests
+const corsOptions = {
+  origin: '*', // Allow all origins (or specify: ['http://localhost:3000', 'https://yourdomain.com'])
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions)); // This handles all CORS requests including preflight
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true })); 
 
@@ -52,6 +61,10 @@ app.get("/health", (req, res) => {
 });
 
 // --- 3. WEBHOOK ENDPOINT ---
+
+// Handle preflight request for webhook
+app.options("/retell-webhook", cors(corsOptions));
+
 app.post("/retell-webhook", async (req, res) => {
   try {
     const { name, args } = req.body;
