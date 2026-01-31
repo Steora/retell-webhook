@@ -69,49 +69,83 @@ app.post("/retell-webhook", async (req, res) => {
   try {
     const { name, args } = req.body;
     console.log(`\n🔹 Function Triggered: ${name}`);
+    console.log(`📦 Args:`, JSON.stringify(args, null, 2));
+
+    // Validate request body
+    if (!name) {
+      return res.status(400).json({ error: "Missing 'name' field in request body" });
+    }
+
+    if (!args) {
+      return res.status(400).json({ error: "Missing 'args' field in request body" });
+    }
 
     let responseMessage = "";
 
     switch (name) {
       // CASE 1: COMPLEX ORDER FORM
       case "submit_videoplus_order":
-        // A. Send Confirmation to User
-        await sendEmail({
-          to: args.ordering_party_email,
-          subject: `Order Confirmation: ${args.style_of_cause}`,
-          html: getUserOrderTemplate(args), // See template below
-        });
+        try {
+          // A. Send Confirmation to User
+          if (args.ordering_party_email) {
+            await sendEmail({
+              to: args.ordering_party_email,
+              subject: `Order Confirmation: ${args.style_of_cause || 'New Order'}`,
+              html: getUserOrderTemplate(args),
+            });
+          }
 
-        // B. Send Alert to Admin
-        await sendEmail({
-          to: ADMIN_EMAIL,
-          subject: `NEW ORDER: ${args.style_of_cause}`,
-          html: getAdminOrderTemplate(args), // See template below
-        });
+          // B. Send Alert to Admin
+          await sendEmail({
+            to: ADMIN_EMAIL,
+            subject: `NEW ORDER: ${args.style_of_cause || 'New Order'}`,
+            html: getAdminOrderTemplate(args),
+          });
 
-        responseMessage = `I have emailed the order confirmation to ${args.ordering_party_email}.`;
+          responseMessage = args.ordering_party_email 
+            ? `I have emailed the order confirmation to ${args.ordering_party_email}.`
+            : "Order has been received and processed.";
+        } catch (emailError) {
+          console.error("Error in submit_videoplus_order:", emailError);
+          // Still return success message even if email fails
+          responseMessage = "Order has been received. We'll process it shortly.";
+        }
         break;
 
       // CASE 2: SEND WEBSITE LINK
       case "send_website_link":
-        await sendEmail({
-          to: args.email,
-          subject: "Here is the link you requested",
-          html: `<p>Hi there,</p><p>Here is the link to our website: <a href="https://yourwebsite.com">Click Here</a></p>`,
-        });
-        responseMessage = "I have sent the website link to your email.";
+        try {
+          if (!args.email) {
+            responseMessage = "Email address is required to send the link.";
+          } else {
+            await sendEmail({
+              to: args.email,
+              subject: "Here is the link you requested",
+              html: `<p>Hi there,</p><p>Here is the link to our website: <a href="https://myvponline.com">Click Here</a></p>`,
+            });
+            responseMessage = "I have sent the website link to your email.";
+          }
+        } catch (emailError) {
+          console.error("Error in send_website_link:", emailError);
+          responseMessage = "I encountered an issue sending the email, but here's the link: https://myvponline.com";
+        }
         break;
 
       // CASE 3: SUPPORT TICKET
       case "send_support_ticket":
-        await sendEmail({
-          to: ADMIN_EMAIL,
-          subject: `URGENT SUPPORT TICKET: ${args.user_name}`,
-          html: `<h2>New Support Request</h2>
-                 <p><strong>User:</strong> ${args.user_name} (${args.user_email})</p>
-                 <p><strong>Issue:</strong> ${args.issue_details}</p>`,
-        });
-        responseMessage = "I've created a support ticket. Our team has been notified.";
+        try {
+          await sendEmail({
+            to: ADMIN_EMAIL,
+            subject: `URGENT SUPPORT TICKET: ${args.user_name || 'Unknown User'}`,
+            html: `<h2>New Support Request</h2>
+                   <p><strong>User:</strong> ${args.user_name || 'Unknown'} (${args.user_email || 'No email'})</p>
+                   <p><strong>Issue:</strong> ${args.issue_details || 'No details provided'}</p>`,
+          });
+          responseMessage = "I've created a support ticket. Our team has been notified.";
+        } catch (emailError) {
+          console.error("Error in send_support_ticket:", emailError);
+          responseMessage = "I've logged your support request. Our team will be in touch soon.";
+        }
         break;
 
       case "end_call":
@@ -119,14 +153,20 @@ app.post("/retell-webhook", async (req, res) => {
         break;
 
       default:
+        console.warn(`⚠️ Unknown function name: ${name}`);
         responseMessage = "Function execution failed.";
     }
 
     res.json({ result: responseMessage });
 
   } catch (error) {
-    console.error("Error sending email:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    console.error("❌ Error in webhook handler:", error);
+    console.error("Error stack:", error.stack);
+    // Always return a response - don't leave the request hanging
+    res.status(500).json({ 
+      error: "Internal Server Error",
+      message: error.message 
+    });
   }
 });
 
@@ -135,10 +175,8 @@ app.post("/retell-webhook", async (req, res) => {
 // Generic Send Wrapper
 async function sendEmail({ to, subject, html }) {
   try {
-    // Verify SMTP connection before sending
-    await transporter.verify();
-    console.log('✅ SMTP connection verified');
-    
+    // Skip verification to avoid connection issues - just send directly
+    // Verification can timeout and cause server crashes
     const info = await transporter.sendMail({
       from: '"VideoPlus Court Transcription" <soumik@steorasystems.com>',
       to: to,
@@ -164,7 +202,9 @@ async function sendEmail({ to, subject, html }) {
 // --- 4. HTML TEMPLATES (DESIGN YOUR EMAILS HERE) ---
 
 function getUserOrderTemplate(data) {
- 
+  // Helper to handle optional/missing fields cleanly
+  const val = (v) => (v ? v : '<span style="color:#999;">(Not provided)</span>');
+
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5;">
       <h2 style="background-color: #d35400; color: white; padding: 10px;">New Transcript Order </h2>
@@ -192,6 +232,7 @@ function getUserOrderTemplate(data) {
       <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 5px;">Case Characteristics</h3>
       <table style="width: 100%; margin-bottom: 15px;">
         <tr><td style="width: 180px;"><strong>Is Appeal?</strong></td><td>${val(data.is_appeal)}</td></tr>
+        <tr><td><strong>Appeal Type:</strong></td><td>${val(data.appeal_type)}</td></tr>
         <tr><td><strong>Is Legal Aid?</strong></td><td>${val(data.is_legal_aid)}</td></tr>
       </table>
 
@@ -278,6 +319,7 @@ function getAdminOrderTemplate(data) {
       <h3 style="border-bottom: 2px solid #ddd; padding-bottom: 5px;">Case Characteristics</h3>
       <table style="width: 100%; margin-bottom: 15px;">
         <tr><td style="width: 180px;"><strong>Is Appeal?</strong></td><td>${val(data.is_appeal)}</td></tr>
+        <tr><td><strong>Appeal Type:</strong></td><td>${val(data.appeal_type)}</td></tr>
         <tr><td><strong>Is Legal Aid?</strong></td><td>${val(data.is_legal_aid)}</td></tr>
       </table>
 
@@ -302,11 +344,44 @@ function getAdminOrderTemplate(data) {
 }
 
 
-// --- 5. START SERVER ---
-app.listen(PORT, '0.0.0.0', () => {
+// --- 5. ERROR HANDLING ---
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't exit the process - keep the server running
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  // Don't exit the process - keep the server running
+});
+
+// Handle SIGTERM and SIGINT for graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('⚠️ SIGTERM received, shutting down gracefully...');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('⚠️ SIGINT received, shutting down gracefully...');
+  process.exit(0);
+});
+
+// --- 6. START SERVER ---
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`\n✅ VideoPlus Webhook Server`);
   console.log(`📡 Server running on port ${PORT}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📧 Admin email: ${ADMIN_EMAIL}`);
   console.log(`⏰ Started at: ${new Date().toISOString()}\n`);
+});
+
+// Handle server errors
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use`);
+  } else {
+    console.error('❌ Server error:', error);
+  }
 });

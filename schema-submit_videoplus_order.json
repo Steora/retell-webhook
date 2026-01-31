@@ -45,6 +45,15 @@
         "unknown"
       ]
     },
+    "appeal_type": {
+      "type": "string",
+      "enum": [
+        "Superior",
+        "Divisional",
+        "Court of Appeal"
+      ],
+      "description": "Applicable only if is_appeal is yes"
+    },
     "returning_customer": {
       "type": "string",
       "enum": [
