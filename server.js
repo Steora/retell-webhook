@@ -67,17 +67,38 @@ app.options("/retell-webhook", cors(corsOptions));
 
 app.post("/retell-webhook", async (req, res) => {
   try {
-    const { name, args } = req.body;
+    let { name, args } = req.body;
+
+    // Normalize args: Retell may send as object, string, or nested under .parameters
+    if (typeof args === 'string') {
+      try {
+        args = JSON.parse(args);
+      } catch (e) {
+        console.warn('⚠️ Could not parse args as JSON:', e.message);
+        args = {};
+      }
+    }
+    args = args && typeof args === 'object' ? args : {};
+    // Some flows send parameters nested
+    if (args.parameters && typeof args.parameters === 'object') {
+      args = args.parameters;
+    }
+    // If args is still empty, try using top-level body keys (excluding name and call)
+    if (Object.keys(args).length === 0 && req.body && typeof req.body === 'object') {
+      const { name: _n, call: _c, args: _a, ...rest } = req.body;
+      if (Object.keys(rest).length > 0) {
+        args = rest;
+        console.log('📦 Using top-level body as args');
+      }
+    }
+
     console.log(`\n🔹 Function Triggered: ${name}`);
+    console.log(`📦 Args keys:`, Object.keys(args));
     console.log(`📦 Args:`, JSON.stringify(args, null, 2));
 
     // Validate request body
     if (!name) {
       return res.status(400).json({ error: "Missing 'name' field in request body" });
-    }
-
-    if (!args) {
-      return res.status(400).json({ error: "Missing 'args' field in request body" });
     }
 
     let responseMessage = "";
@@ -202,8 +223,9 @@ async function sendEmail({ to, subject, html }) {
 // --- 4. HTML TEMPLATES (DESIGN YOUR EMAILS HERE) ---
 
 function getUserOrderTemplate(data) {
+  data = data || {};
   // Helper to handle optional/missing fields cleanly
-  const val = (v) => (v ? v : '<span style="color:#999;">(Not provided)</span>');
+  const val = (v) => (v !== undefined && v !== null && v !== '' ? String(v) : '<span style="color:#999;">(Not provided)</span>');
 
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5;">
@@ -289,8 +311,9 @@ function getUserOrderTemplate(data) {
 
 
 function getAdminOrderTemplate(data) {
+  data = data || {};
   // Helper to handle optional/missing fields cleanly
-  const val = (v) => (v ? v : '<span style="color:#999;">(Not provided)</span>');
+  const val = (v) => (v !== undefined && v !== null && v !== '' ? String(v) : '<span style="color:#999;">(Not provided)</span>');
 
   return `
     <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.5;">
